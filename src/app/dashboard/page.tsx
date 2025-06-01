@@ -9,41 +9,21 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { User as UserType } from "@/lib/validation";
 
+type LocalStorageUser = {
+  name: string;
+  email: string;
+  phone: string;
+  street: string;
+  city: string;
+  zip: string;
+};
+
 export default function DashboardPage() {
   const [users, setUsers] = useState<UserType[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-
-  useEffect(() => {
-    fetchUsers();
-
-    // Listen for storage changes to refresh when new users are added
-    const handleStorageChange = () => {
-      fetchUsers();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-
-    // Also listen for custom event when user is added in the same tab
-    window.addEventListener('userAdded', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('userAdded', handleStorageChange);
-    };
-  }, []);
-
-  useEffect(() => {
-    // Filter users based on search term
-    const filtered = users.filter(
-      (user) =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.address.city.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredUsers(filtered);
-  }, [users, searchTerm]);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -71,13 +51,42 @@ export default function DashboardPage() {
     }
   }, []);
 
+  useEffect(() => {
+    fetchUsers();
+
+    // Listen for storage changes to refresh when new users are added
+    const handleStorageChange = () => {
+      fetchUsers();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also listen for custom event when user is added in the same tab
+    window.addEventListener('userAdded', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userAdded', handleStorageChange);
+    };
+  }, [fetchUsers]);
+
+  useEffect(() => {
+    // Filter users based on search term
+    const filtered = users.filter(
+      (user) =>
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.address.city.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredUsers(filtered);
+  }, [users, searchTerm]);
+
   const getLocalStorageUsers = (): UserType[] => {
     try {
       const savedUsers = localStorage.getItem("users");
       if (savedUsers) {
         const parsedUsers = JSON.parse(savedUsers);
         // Transform localStorage format to match API format
-        return parsedUsers.map((user: UserType, index: number) => ({
+        return parsedUsers.map((user: LocalStorageUser, index: number) => ({
           id: `local-${Date.now()}-${index}`, // Generate unique ID for local users
           name: user.name,
           email: user.email,
